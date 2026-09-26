@@ -24,7 +24,8 @@ go on.
 │   ├── preprocessing.py    # cleaning + train/test split
 │   ├── model.py             # model construction
 │   ├── evaluate.py         # accuracy metrics + fairness check
-│   └── results.py          # saves each run's report to disk
+│   ├── results.py          # saves each run's report to disk
+│   └── data_diagnostics.py  # part of EDA
 ├── results/                # created automatically -- one file per run (not tracked in git)
 └── data/
     ├── compas_two_year_recidivism.csv
