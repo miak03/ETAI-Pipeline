@@ -22,8 +22,8 @@ go on.
 ├── src/
 │   ├── data.py               # loading
 │   ├── preprocessing.py      # row-preserving cleaning (incl. domain-rule checks), training-only de-duplication, deployable preprocessing pipeline, and the split that locks the final test set away (week 4)
-│   ├── model.py               # model construction + build_pipeline(): preprocessing + model as one estimator (week 5)
-│   ├── evaluate.py           # stratified k-fold cross-validation, out-of-fold report + fairness check (week 4)
+│   ├── model.py               # model construction (incl. the oblique random forest and AdaBoost builders, week 6; XGBoost, week 8) + VoteSelector, the feature-selection step (week 8) + build_pipeline(): preprocessing + selection + model as one estimator (week 5)
+│   ├── evaluate.py           # stratified k-fold cross-validation, out-of-fold report + fairness check (week 4) + corrected paired test to compare two models (week 6), several metrics and out-of-fold probabilities (week 7)
 │   ├── tuning.py             # hyperparameter tuning with Optuna + nested cross-validation (week 5)
 │   └── results.py            # saves each run's report to disk
 ├── results/                  # created automatically -- one file per run (not tracked in git)
@@ -48,6 +48,7 @@ Added `corrected_paired_test()` to compare models on the same folds and identify
 | 7 | Gradient boosting + evaluating with probabilities | New: Added gradient boosting, histogram gradient boosting, and Gaussian naive Bayes models with configuration search spaces, and made gradient boosting the model run by `main.py`.
 Evaluation now reports multiple metrics, uses configurable ROC-AUC for tuning and ranking, and includes out-of-fold probabilities and a confusion matrix.
 Each run is recorded in `results/runs.csv` with model settings and fold scores for later comparison, while printed results are easier to scan.
+| 8 | XGBoost + feature selection | New: Added XGBoost (`XGBClassifier`) as a supported model, configured as the model run by `main.py`, with its own tuning search space. Added `VoteSelector` as an optional learned pipeline step between preprocessing and the model: random forest, gradient boosting, and L1 logistic regression each vote for features, and only features meeting the configurable `min_votes` threshold are kept. Since selection is part of the pipeline, it is learned from each fold's training rows rather than its validation rows; tuning can optimize `select__min_votes` alongside model parameters using nested CV. Fitted preprocessing and selection steps are cached during tuning, and the final selected features and selection setting are reported. |
 
 ## Preprocessing decisions
 
