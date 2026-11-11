@@ -1,5 +1,5 @@
 """
-Entry point: `python main.py`.
+Entry point: `python main.py [config.yaml]`.
 
 load config -> load and clean data -> drop duplicate rows (training only) -> features/target
 -> lock the test set -> cross-validate the pipeline (preprocessing, feature selection if enabled,
@@ -7,6 +7,7 @@ model) on the development set (several metrics, and the no-model floor on the sa
 -> [if tuning is enabled: nested CV of the tuning procedure, then tuning on all development rows]
 -> out-of-fold reports -> refit on all development rows -> scoreboard + full report
 """
+import argparse
 import shutil
 import tempfile
 from datetime import datetime
@@ -29,8 +30,8 @@ def load_config(path: str = "config.yaml") -> dict:
         return yaml.safe_load(f)
 
 
-def main():
-    config = load_config()
+def main(config_path: str = "config.yaml"):
+    config = load_config(config_path)
     run = datetime.now().strftime("%Y%m%d_%H%M%S")
     model_type = config["model"]["type"]
 
@@ -149,4 +150,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Run the configured machine-learning pipeline.")
+    parser.add_argument("config", nargs="?", default="config.yaml",
+                        help="path to a YAML config file (default: config.yaml)")
+    main(parser.parse_args().config)
