@@ -133,6 +133,11 @@ tuning:
       model__reg_alpha: {type: float, low: 0.001, high: 10.0, log: true}
       model__gamma: {type: float, low: 0.0, high: 5.0}
 
+prediction:
+  path: "data/adult_new.csv"
+  output_path: "results/adult_train/predictions.csv"
+  threshold: 0.5
+
 output:
   results_dir: "results/adult_train"
   scoreboard: "results/adult_train/runs.csv"        # one row per run; delete it when the data, cleaning or folds change

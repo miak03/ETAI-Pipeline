@@ -48,7 +48,48 @@ Added `corrected_paired_test()` to compare models on the same folds and identify
 | 7 | Gradient boosting + evaluating with probabilities | New: Added gradient boosting, histogram gradient boosting, and Gaussian naive Bayes models with configuration search spaces, and made gradient boosting the model run by `main.py`.
 Evaluation now reports multiple metrics, uses configurable ROC-AUC for tuning and ranking, and includes out-of-fold probabilities and a confusion matrix.
 Each run is recorded in `results/runs.csv` with model settings and fold scores for later comparison, while printed results are easier to scan.
-| 8 | XGBoost + feature selection | New: Added XGBoost (`XGBClassifier`) as a supported model, configured as the model run by `main.py`, with its own tuning search space. Added `VoteSelector` as an optional learned pipeline step between preprocessing and the model: random forest, gradient boosting, and L1 logistic regression each vote for features, and only features meeting the configurable `min_votes` threshold are kept. Since selection is part of the pipeline, it is learned from each fold's training rows rather than its validation rows; tuning can optimize `select__min_votes` alongside model parameters using nested CV. Fitted preprocessing and selection steps are cached during tuning, and the final selected features and selection setting are reported. |
+| 8 | XGBoost + feature selection | New: Added XGBoost (`XGBClassifier`) as a supported model, configured as the model run by `main.py`, with its own tuning search space. Added `VoteSelector` as an optional learned pipeline step between preprocessing and the model: random forest, gradient boosting, and L1 logistic regression each vote for features, and only features meeting the configurable `min_votes` threshold are kept. Since selection is part of the pipeline, it is learned from each fold's training rows rather than its validation rows; tuning can optimize `select__min_votes` alongside model parameters using nested CV. Fitted preprocessing and selection steps are cached during tuning, and the final selected features and selection setting are reported.
+| 9 | Beyond COMPAS | Added `config_adult.yaml` for the Adult income dataset and let `main.py` accept an optional config path (defaulting to `config.yaml`). Ran untuned XGBoost, AdaBoost and oblique random forest on the same Adult CV folds; untuned XGBoost met all three §2.4 targets. Inspected selected features (9 retained, none of the `v` columns) and compared model fold scores with the corrected paired test. Added optional, config-driven prediction of unlabeled data and saved Adult predictions with IDs, probabilities and 0/1 labels
+
+## Beyond COMPAS (Option A)
+
+### Run
+Run the Adult pipeline from the repository root:
+
+```powershell
+python main.py config_adult.yaml
+```
+
+## Beyond COMPAS: debugging notes
+
+**What broke:** The fairness report raised `KeyError: 'score_text'` when run on Adult data.
+
+**Why it broke:** `score_text` is a COMPAS-specific column, but `fairness_report()` assumed it was always present and unconditionally used it to compare COMPAS's score with the model.
+
+**How I fixed it:** The report now adds the COMPAS comparison only when `score_text` exists. For datasets without that column, it still reports the model's false-positive rates by the configured sensitive attribute.
+
+**Cleaning note:** Adult uses `?` as a missing-value marker in `workclass`, `occupation` and `native_country`. The current category cleaner converts placeholders only for columns listed in `diagnostics.canonical_categories`, so those Adult columns are listed in `config_adult.yaml`.
+
+## Results
+
+Final model: xgboost refit on all 4800 development rows.
+Features kept: 9 of 47: numeric__age, numeric__education_num, numeric__capital_gain, numeric__capital_loss, numeric__hours_per_week, categorical__education, categorical__marital_status, categorical__occupation, categorical__relationship
+
+Scoreboard:
+| Run | Model | Tuned | Feature selection | ROC-AUC | Std. dev. | Floor |
+|---|---|---:|---|---:|---:|---:|
+| 20261111_171821 | XGBoost | No | min_votes 2 | 0.911 | 0.017 | 0.500 |
+| 20261111_165801 | XGBoost | Yes | min_votes 1 | 0.908 | 0.017 | 0.500 |
+| 20261111_163931 | AdaBoost | No | min_votes 2 | 0.903 | 0.016 | 0.500 |
+| 20261111_164430 | Oblique random forest | No | min_votes 2 | 0.893 | 0.017 | 0.500 |
+
+The feature selector kept 9 features for the untuned XGBoost run: age, education number, capital gain, capital loss, hours per week, education, marital status, occupation, and relationship. It kept none of the v columns.
+
+The corrected paired test favored XGBoost over AdaBoost (p = 0.0077) and over oblique random forest (p = 0.00012); AdaBoost also scored higher than oblique random forest (p = 0.0050).
+
+## Reflection
+
+The hardest assumption to find was that the fairness report always had COMPAS’s score_text column, even though the Adult dataset doesn’t include it. I made that comparison conditional, so the fairness report can run with datasets that don’t have a COMPAS score. For Adult, I configured the correct target, feature types, missing-value handling, and missingness indicators, then compared models using the same cross-validation folds. Untuned XGBoost with feature selection performed best among the runs I tried, meeting all three targets with ROC-AUC 0.911, accuracy 0.863, and class-1 F1 0.684.
 
 ## Preprocessing decisions
 

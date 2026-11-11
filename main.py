@@ -7,6 +7,8 @@ model) on the development set (several metrics, and the no-model floor on the sa
 -> [if tuning is enabled: nested CV of the tuning procedure, then tuning on all development rows]
 -> out-of-fold reports -> refit on all development rows -> scoreboard + full report
 """
+import pandas as pd
+from pathlib import Path
 import argparse
 import shutil
 import tempfile
@@ -121,6 +123,32 @@ def main(config_path: str = "config.yaml"):
     report += "\n" + fairness_report(y_dev, oof_proba, extras_dev, sensitive_attr=config["data"]["sensitive_attr"])
 
     pipeline.fit(X_dev, y_dev)
+
+    prediction_config = config.get("prediction")
+    if prediction_config:
+        prediction_raw = load_data(prediction_config["path"])
+        prediction_clean = clean_dataset(prediction_raw, config["diagnostics"])
+
+        mnar_sources = config["preprocessing"].get("mnar_indicator_sources", [])
+        X_prediction, _, _ = split_features_target(
+            prediction_clean, config["data"], mnar_sources
+        )
+
+        probabilities = pipeline.predict_proba(X_prediction)[:, 1]
+        threshold = prediction_config.get("threshold", 0.5)
+
+        id_column = config["diagnostics"]["id_column"]
+        predictions = pd.DataFrame({
+            id_column: prediction_raw[id_column].to_numpy(),
+            "probability": probabilities,
+            "prediction": (probabilities >= threshold).astype(int),
+        })
+
+        output_path = Path(prediction_config["output_path"])
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        predictions.to_csv(output_path, index=False)
+        print(f"Saved {len(predictions)} predictions to {output_path}")
+
     refit = f"Final model: {model_type} refit on all {len(X_dev)} development rows."
     if selection_enabled:
         all_features = pipeline.named_steps["prep"].get_feature_names_out()
