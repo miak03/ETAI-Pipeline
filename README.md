@@ -16,19 +16,22 @@ go on.
 
 ```
 .
-├── main.py                  # entry point: run the whole pipeline
+├── main.py                  # entry point: train, evaluate and save the model
+├── predict.py               # entry point: predict a new CSV with the saved model (week 10)
 ├── config.yaml               # all tunable settings live here
 ├── requirements.txt
 ├── src/
 │   ├── data.py               # loading
 │   ├── preprocessing.py      # row-preserving cleaning (incl. domain-rule checks), training-only de-duplication, deployable preprocessing pipeline, and the split that locks the final test set away (week 4)
 │   ├── model.py               # model construction (incl. the oblique random forest and AdaBoost builders, week 6; XGBoost, week 8) + VoteSelector, the feature-selection step (week 8) + build_pipeline(): preprocessing + selection + model as one estimator (week 5)
-│   ├── evaluate.py           # stratified k-fold cross-validation, out-of-fold report + fairness check (week 4) + corrected paired test to compare two models (week 6), several metrics and out-of-fold probabilities (week 7)
+│   ├── evaluate.py           # stratified k-fold cross-validation, out-of-fold report + fairness check (week 4), corrected paired test to compare two models (week 6), several metrics and out-of-fold probabilities (week 7)
 │   ├── tuning.py             # hyperparameter tuning with Optuna + nested cross-validation (week 5)
-│   └── results.py            # saves each run's report to disk
-├── results/                  # created automatically -- one file per run (not tracked in git)
+│   └── results.py            # saves each run's report to disk, and its scores to the runs table (week 7)
+├── results/                  # created automatically -- one report per run + runs.csv, the table of all runs (not tracked in git)
+├── models/                   # created automatically -- model.joblib, the final fitted pipeline (not tracked in git)
 └── data/
     ├── compas_two_year_recidivism.csv
+    ├── compas_new_people.csv  # 20 people without the target, to try predict.py
     └── README.md              # problem description + full data dictionary
 ```
 
